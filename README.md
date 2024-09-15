@@ -1,3 +1,7 @@
+# ChatterPi PCA9865
+ChatterPi was designed to use GPIO to control a single servo. For projects using PCA9685 you can use this modification. 
+
+
 # ChatterPi
 Flexible Audio Servo Controller using Raspberry Pi (for talking skulls, etc.)
 Mike McGurrin
