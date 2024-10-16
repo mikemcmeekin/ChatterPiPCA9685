@@ -4,22 +4,24 @@ Updated to fix bad calls to audio.play_audio Sat Dec 26 2020
 @author: Mike McGurrin
 """
 
-from gpiozero.pins.pigpio import PiGPIOFactory
-from gpiozero import Device, Button, DigitalOutputDevice
-Device.pin_factory = PiGPIOFactory()
+#from gpiozero.pins import Factory
+#from gpiozero import Device, Button, DigitalOutputDevice
+#Device.pin_factory = Factory()
 
 import time
 
 import config as c
-import tracks as t
+from tracks import Tracks
 import audio
+from led import LEDControl
 
-tracks = t.Tracks()
 a = audio.AUDIO()
+tracks = Tracks(a)
 
-pir = Button(c.PIR_PIN, pull_up=False)
-triggerOut = DigitalOutputDevice(c.TRIGGER_OUT_PIN)
-eyesPin = DigitalOutputDevice(c.EYES_PIN)
+
+#pir = Button(c.PIR_PIN, pull_up=False)
+triggerOut = LEDControl(c.TRIGGER_OUT_PIN)
+eyesPin = LEDControl(channel=c.EYES_PIN)
 ambient_interrupt = False   # set to True when timer goes off or PIR triggered
 trigger_time = time.time()
 
@@ -69,11 +71,11 @@ def controls():
                     if current_time > start_time + c.DELAY:
                         event_handler()
                         start_time = time.time()
-            elif c.PROP_TRIGGER == 'PIR':
-                while True:
-                    pir.wait_for_press()
-                    event_handler()  
-                    time.sleep(c.DELAY) 
+           # elif c.PROP_TRIGGER == 'PIR':
+           #     while True:
+           #         pir.wait_for_press()
+           #         event_handler()  
+           #         time.sleep(c.DELAY) 
             elif c.PROP_TRIGGER == 'START':
                 if c.TRIGGER_OUT == 'ON':
                     triggerOut.on()
@@ -84,7 +86,7 @@ def controls():
     except Exception as e:
         print(e)  
     finally:
-        pir.close()
+        #pir.close()
         eyesPin.close()
         triggerOut.close()
         a.jaw.close()

@@ -1,12 +1,12 @@
 import os
-import control
 
 class Tracks:
-    def __init__(self):
+    def __init__(self, audio):
+        self.a = audio
         self.vocalTrackPos = 0
-        self.vocalTrackLocation = 'vocals/'
+        self.vocalTrackLocation = '/root/ChatterPi/src/vocals/'
         self.ambientTrackPos = 0
-        self.ambientTrackLocation = 'ambient/'
+        self.ambientTrackLocation = '/root/ChatterPi/src/ambient/'
         self.tracksDic = {1:'01', 2: '02', 3: '03', 4: '04', 5: '05', 6: '06',
                          7: '07', 8: '08', 9: '09', 10: '10'}
         # Determine which, if any, files are present
@@ -24,18 +24,17 @@ class Tracks:
         if self.vocalList != []:
             vocalFileName = 'v'+self.tracksDic[self.vocalList[self.vocalTrackPos]]+'.wav'
             vocalTrackFile = self.vocalTrackLocation+vocalFileName
-            control.a.play_vocal_track(vocalTrackFile)
+            self.a.play_vocal_track(vocalTrackFile)
             if self.vocalTrackPos == len(self.vocalList) - 1:
                 self.vocalTrackPos = 0
             else:
                 self.vocalTrackPos += 1
               
     def play_ambient(self):
-        while control.ambient_interrupt == False:
             if self.ambientList != []:
                 ambientFileName = 'a'+self.tracksDic[self.ambientList[self.ambientTrackPos]]+'.wav'
                 ambientTrackFile = self.ambientTrackLocation+ambientFileName
-                control.a.play_ambient_track(ambientTrackFile)
+                self.a.play_ambient_track(ambientTrackFile)
                 if self.ambientTrackPos == len(self.ambientList) - 1:
                     self.ambientTrackPos = 0
                 else:

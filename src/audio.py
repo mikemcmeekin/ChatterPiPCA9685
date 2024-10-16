@@ -9,14 +9,13 @@ import time
 import pyaudio
 import atexit
 import numpy as np
-from gpiozero.pins.pigpio import PiGPIOFactory
-from gpiozero import Device, AngularServo
 from bandpassFilter import BPFilter
 import config as c
 import control
+from servo import StandardServo
+import logging
 
 c.update()
-Device.pin_factory = PiGPIOFactory()
 
 class AUDIO:
     def __init__(self):
@@ -24,10 +23,10 @@ class AUDIO:
         self.p = pyaudio.PyAudio()
         print("if you see ALSA error messages above, ignore them")
         print("End of PyAudio initialization")
-        self.jaw = AngularServo(c.JAW_PIN, min_angle=c.MIN_ANGLE, 
+        self.jaw = StandardServo(channel=c.JAW_PIN, min_angle=c.MIN_ANGLE, 
                     max_angle=c.MAX_ANGLE, initial_angle=None, 
-                    min_pulse_width=c.SERVO_MIN/(1*10**6),
-                    max_pulse_width=c.SERVO_MAX/(1*10**6))
+                    min_pulse_width=c.SERVO_MIN,
+                    max_pulse_width=c.SERVO_MAX)
         self.bp = BPFilter()
         # flipping MIN_ANGLE and MAX_ANGLE in settings changes direction of servo movement BUT
         # must use unflipped values in calculating the amount of jaw movement
@@ -39,10 +38,10 @@ class AUDIO:
             self.j_max = c.MIN_ANGLE          
         
     def update_jaw(self):
-        self.jaw = AngularServo(c.JAW_PIN, min_angle=c.MIN_ANGLE, 
+        self.jaw = StandardServo(channel=c.JAW_PIN, min_angle=c.MIN_ANGLE, 
                     max_angle=c.MAX_ANGLE, initial_angle=None, 
-                    min_pulse_width=c.SERVO_MIN/(1*10**6),
-                    max_pulse_width=c.SERVO_MAX/(1*10**6))
+                    min_pulse_width=c.SERVO_MIN,
+                    max_pulse_width=c.SERVO_MAX)
         if c.MIN_ANGLE > c.MAX_ANGLE:
             self.j_min = c.MIN_ANGLE
             self.j_max = c.MAX_ANGLE
@@ -116,7 +115,7 @@ class AUDIO:
             if now - latest_time > 0.02:
                 latest_time = now   
                 jawTarget = get_target(data, channels)
-                self.jaw.angle = jawTarget
+                self.jaw.set_angle(jawTarget)
             # If only want left channel of input, duplicate left channel on right
             if (channels == 2) and (c.OUTPUT_CHANNELS == 'LEFT'):
                 data = overwrite(data, channels)
@@ -130,7 +129,7 @@ class AUDIO:
             if now - latest_time > 0.02:
                 latest_time = now   
                 jawTarget = get_target(in_data, channels)
-                self.jaw.angle = jawTarget            
+                self.jaw.set_angle(jawTarget)            
             return (in_data, pyaudio.paContinue)     
                
         def normalEnd():
@@ -138,7 +137,7 @@ class AUDIO:
             self.stream.close()
             if (c.SOURCE == 'FILES'):
                 wf.close()
-            self.jaw.angle = None  
+            self.jaw.set_angle(0)  
             
         def cleanup():
             normalEnd()
@@ -180,6 +179,7 @@ class AUDIO:
                         time.sleep(1.)                                           
             normalEnd() 
         except (KeyboardInterrupt, SystemExit):
+            print("An exception occurred")
             cleanup()               
         
     def play_ambient_track(self, filename=None):    
