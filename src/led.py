@@ -4,7 +4,7 @@ import busio
 from adafruit_pca9685 import PCA9685
 
 class LEDControl:
-    def __init__(self, channel, min_brightness=0, max_brightness=1):
+    def __init__(self, channel, min_brightness=0, max_brightness=100):
         """
         Initializes an LED controlled by the ServoKit.
 
@@ -30,7 +30,7 @@ class LEDControl:
         if self.min_brightness <= brightness <= self.max_brightness:
             # Convert brightness percentage to a PWM value
             pwm_value = brightness / 100 * 65535
-            self.led.duty_cycle = pwm_value
+            self.led.duty_cycle = int(pwm_value)
         else:
             raise ValueError(f"Brightness must be between {self.min_brightness} and {self.max_brightness}")
 

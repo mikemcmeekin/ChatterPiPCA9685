@@ -13,6 +13,7 @@ from bandpassFilter import BPFilter
 import config as c
 import control
 from servo import StandardServo
+from led import LEDControl
 import logging
 
 c.update()
@@ -28,6 +29,7 @@ class AUDIO:
                     min_pulse_width=c.SERVO_MIN,
                     max_pulse_width=c.SERVO_MAX)
         self.bp = BPFilter()
+        self.eyesPin = LEDControl(channel=c.EYES_PIN)
         # flipping MIN_ANGLE and MAX_ANGLE in settings changes direction of servo movement BUT
         # must use unflipped values in calculating the amount of jaw movement
         if c.MIN_ANGLE > c.MAX_ANGLE:
@@ -112,10 +114,11 @@ class AUDIO:
             channels = wf.getnchannels()
             # Only proces jaw movements 50x per second, to avoid buffer overruns
             now = time.monotonic()
-            if now - latest_time > 0.02:
+            if now - latest_time > 0.1:
                 latest_time = now   
                 jawTarget = get_target(data, channels)
-                self.jaw.set_angle(jawTarget)
+                self.jaw.set_angle(180-jawTarget)
+                self.eyesPin.set_brightness((jawTarget/180)*100)
             # If only want left channel of input, duplicate left channel on right
             if (channels == 2) and (c.OUTPUT_CHANNELS == 'LEFT'):
                 data = overwrite(data, channels)
@@ -168,7 +171,7 @@ class AUDIO:
                 start_time = time.monotonic() 
                 latest_time = start_time                  
                 self.stream = self.p.open(format=pyaudio.paInt16, channels=1,
-                            rate=48000, frames_per_buffer=c.BUFFER_SIZE,
+                            rate=44100, frames_per_buffer=c.BUFFER_SIZE,
                             input=True, output=True,
                             stream_callback=micCallback)  
                 if c.PROP_TRIGGER != 'START':

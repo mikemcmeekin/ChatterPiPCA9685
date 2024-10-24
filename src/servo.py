@@ -1,7 +1,7 @@
 from adafruit_servokit import ServoKit
 
 class StandardServo:
-    def __init__(self, channel, min_angle=0, 
+    def __init__(self, channel=0, min_angle=0, 
                     max_angle=140, initial_angle=None, min_pulse_width=500, max_pulse_width=2500):
         """
         Initializes a single servo on a specified channel.
