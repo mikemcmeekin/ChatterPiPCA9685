@@ -24,11 +24,16 @@ class StandardServo:
 
         :param angle: The angle to set the servo to (0 to 180 degrees).
         """
-        if 0 <= angle <= 180:
+        if angle <= self.min_angle :
+            self.servo.angle = self.min_angle
+        elif angle >= self.max_angle :
+            self.servo.angle = self.max_angle
+        elif angle > self.min_angle and angle < self.max_angle :
             self.servo.angle = angle
         else:
             raise ValueError("Angle must be between 0 and 180 degrees")
             print("Angle value was " & angle)
+        return angle
 
     def disable(self):
         """

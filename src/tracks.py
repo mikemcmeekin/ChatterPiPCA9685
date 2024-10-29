@@ -4,6 +4,7 @@ class Tracks:
     def __init__(self, audio):
         self.a = audio
         self.vocalTrackPos = 0
+        self.playCount =0
         self.vocalTrackLocation = '/root/ChatterPi/src/vocals/'
         self.ambientTrackPos = 0
         self.ambientTrackLocation = '/root/ChatterPi/src/ambient/'
@@ -21,14 +22,18 @@ class Tracks:
                 self.ambientList.append(i)
 
     def play_vocal(self):
-        if self.vocalList != []:
+        if self.vocalList != [] :
             vocalFileName = 'v'+self.tracksDic[self.vocalList[self.vocalTrackPos]]+'.wav'
             vocalTrackFile = self.vocalTrackLocation+vocalFileName
             self.a.play_vocal_track(vocalTrackFile)
-            if self.vocalTrackPos == len(self.vocalList) - 1:
+            if self.vocalTrackPos == len(self.vocalList) - 1 :
                 self.vocalTrackPos = 0
+                self.playCount += 1
+                print("Current play count" + str(self.playCount))
             else:
                 self.vocalTrackPos += 1
+            if self.playCount == 3 :
+                raise SystemExit(1)
               
     def play_ambient(self):
             if self.ambientList != []:

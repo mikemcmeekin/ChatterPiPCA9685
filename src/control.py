@@ -12,7 +12,7 @@ import time
 
 import config as c
 from tracks import Tracks
-import audio
+import soundDeviceCtrl as audio
 from led import LEDControl
 
 a = audio.AUDIO()
