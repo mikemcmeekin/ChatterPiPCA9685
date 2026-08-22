@@ -42,3 +42,35 @@ ChaterPi includes the following features
 - Utility (via control panel) to maximize the volume of the audio files
 
 If you use ChatterPi, I'd live to hear about it. Post a comment on my blog: https://www.mcgurrin.info/robots/690/ and consider giving this package a star here on GitHub. Thanks!
+
+# Skeleton Scripts & Viam Control
+
+ChatterPi can now drive additional servos (head, arms, ...) declared per-skeleton in `config.ini`, and play timed **scripts** that combine audio with servo motion. The jaw stays audio-driven.
+
+## Per-skeleton hardware
+Every piece of hardware is a `[PART <name>]` section in `src/config.ini` (type `servo`/`led`, channel, angle/pulse limits, rest position). Each skeleton carries its own config describing its equipment. Legacy configs without `[PART]` sections still work.
+
+## Scripts
+JSON files in `src/scripts/`; `t` is seconds from the start of the script:
+
+```json
+{
+  "name": "greet",
+  "steps": [
+    {"t": 0.0, "audio": "v01.wav"},
+    {"t": 0.4, "move": {"head": 15, "ms": 400}},
+    {"t": 1.2, "move": {"arm_l": 60, "ms": 300}},
+    {"t": 4.0, "move": {"head": 0, "ms": 400}}
+  ]
+}
+```
+
+`audio` plays a track (jaw follows the audio level); `move` eases the named parts to the given values over `ms`; `set` jumps immediately.
+
+Run one locally (no Viam): `python src/main.py --script greet`
+
+## Multi-skeleton via Viam
+- Each Pi runs `viam-server` with the custom module `src/skeletonModule.py` (see `src/viam-robot-config.example.json`). It exposes a generic service with commands: `play`, `stop`, `list_scripts`, `status`, `get_time`, `set_part`, `rest`.
+- `play` accepts `start_epoch` (a shared wall-clock time) plus `offset` (the skeleton's clock offset relative to that clock).
+- The conductor (`src/conductor.py`, runs on any PC with viam-sdk — no viam-server needed) measures each skeleton's clock offset with an RTT-corrected `get_time` handshake, picks a common `start_epoch`, and calls `play` on every skeleton so they all start together (millisecond accuracy on a LAN). NTP must be enabled on all machines.
+- Legacy trigger/ambient modes (PIR/TIMER/START) still work and automatically yield the hardware while a script is scheduled or playing.

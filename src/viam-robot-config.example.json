@@ -1,0 +1,20 @@
+{
+  "modules": {
+    "skeleton-module": {
+      "source": "local",
+      "type": "python",
+      "api_version": "rpc",
+      "entrypoint": "/root/ChatterPi/src/skeletonModule.py"
+    }
+  },
+  "services": {
+    "skeleton": {
+      "namespace": "rdk",
+      "type": "service",
+      "subtype": "generic",
+      "model": "mcmeekin:service:skeleton",
+      "name": "skeleton",
+      "attributes": {}
+    }
+  }
+}

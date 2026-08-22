@@ -1,92 +1,106 @@
+# -*- coding: utf-8 -*-
 """
-Created on Sun May 17 22:19:49 2020
-Updated to fix bad calls to audio.play_audio Sat Dec 26 2020
-@author: Mike McGurrin
+Legacy trigger/ambient control loop, refactored onto SkeletonCore.
+
+Runs on its own thread and yields whenever a script is scheduled or
+playing, so Viam-driven choreography always has the hardware to itself.
 """
-
-#from gpiozero.pins import Factory
-#from gpiozero import Device, Button, DigitalOutputDevice
-#Device.pin_factory = Factory()
-
+import logging
 import time
 
 import config as c
-from tracks import Tracks
-import soundDeviceCtrl as audio
-from led import LEDControl
 
-a = audio.AUDIO()
-tracks = Tracks(a)
+log = logging.getLogger("chatterpi.control")
 
 
-#pir = Button(c.PIR_PIN, pull_up=False)
-triggerOut = LEDControl(c.TRIGGER_OUT_PIN)
-eyesPin = LEDControl(channel=c.EYES_PIN)
-ambient_interrupt = False   # set to True when timer goes off or PIR triggered
-trigger_time = time.time()
+def _eyes_on(core, on):
+    if c.EYES == 'ON' and c.EYES_PART in core.rig.parts:
+        core.rig.set(c.EYES_PART, 100 if on else 0)
 
-def event_handler():
-    c.update()
-    if c.EYES == 'ON':
-        eyesPin.on()
-    if c.TRIGGER_OUT == 'ON':
-        triggerOut.on()
+
+def _trigger_out(core):
+    if c.TRIGGER_OUT == 'ON' and c.TRIGGER_OUT_PART in core.rig.parts:
+        core.rig.set(c.TRIGGER_OUT_PART, 100)
         time.sleep(0.5)
-        triggerOut.off()
-    if c.SOURCE == 'FILES':
-        tracks.play_vocal()
-    else:
-        a.play_vocal_track()
-    if c.EYES == 'ON':
-        eyesPin.off()
-        
-def controls():
-    global trigger_time
-    global ambient_interrupt
+        core.rig.set(c.TRIGGER_OUT_PART, 0)
+
+
+def _in_script(core):
+    return core.mode == 'script'
+
+
+def _event_handler(core):
+    """Play one vocal track the old ChatterPi way (files source)."""
+    c.update()
+    _eyes_on(core, True)
+    _trigger_out(core)
+    core.tracks.play_vocal()
+    _eyes_on(core, False)
+
+
+def _wait_ambient(core, finished, until, stop_event):
+    """Wait for the current ambient track to finish, interrupted by the
+    trigger time (or shutdown). Returns True if interrupted."""
+    while not stop_event.is_set():
+        if time.time() > until:
+            core.audio.stop()
+            finished.wait(timeout=2)
+            return True
+        if finished.is_set():
+            return False
+        time.sleep(0.5)
+    return False
+
+
+def run_control_loop(core, stop_event):
     try:
         if c.AMBIENT == 'ON':
-            if c.PROP_TRIGGER == 'START': # No ambient tracks play with this setting
-                if c.TRIGGER_OUT == 'ON':
-                    triggerOut.on()
-                if c.EYES == 'ON':
-                    eyesPin.on()
-                a.play_vocal_track()  
-            elif c.PROP_TRIGGER == 'TIMER' or c.PROP_TRIGGER == 'PIR':         
-                    while True:
-                        if c.PROP_TRIGGER == 'PIR':
-                            time.sleep(c.DELAY) 
-                        elif c.PROP_TRIGGER == 'TIMER':
-                            trigger_time = time.time() + c.DELAY
-                        tracks.play_ambient()
-                        if ambient_interrupt == True:
-                            event_handler()
-                            ambient_interrupt = False
-                            if c.PROP_TRIGGER == 'PIR':
-                                time.sleep(c.DELAY)
-        elif c.AMBIENT == 'OFF':
+            if c.PROP_TRIGGER == 'START':
+                # No ambient tracks play with this setting
+                _eyes_on(core, True)
+                _trigger_out(core)
+                core.tracks.play_vocal()
+                _eyes_on(core, False)
+            elif c.PROP_TRIGGER == 'TIMER':
+                while not stop_event.is_set():
+                    if _in_script(core):
+                        time.sleep(1)
+                        continue
+                    trigger_time = time.time() + c.DELAY
+                    finished = core.tracks.play_ambient()
+                    if finished is None:
+                        log.warning("no ambient tracks available; idling")
+                        time.sleep(5)
+                        continue
+                    if _wait_ambient(core, finished, trigger_time, stop_event):
+                        _event_handler(core)
+                        if not stop_event.is_set():
+                            time.sleep(c.DELAY)
+            else:  # PIR
+                log.warning("PIR trigger is not supported in this build; idling")
+                while not stop_event.is_set():
+                    time.sleep(1)
+        else:  # AMBIENT == 'OFF'
             if c.PROP_TRIGGER == 'TIMER':
                 start_time = time.time()
-                while True:
-                    current_time = time.time()
-                    if current_time > start_time + c.DELAY:
-                        event_handler()
+                while not stop_event.is_set():
+                    if _in_script(core):
                         start_time = time.time()
-           # elif c.PROP_TRIGGER == 'PIR':
-           #     while True:
-           #         pir.wait_for_press()
-           #         event_handler()  
-           #         time.sleep(c.DELAY) 
+                        time.sleep(1)
+                        continue
+                    if time.time() > start_time + c.DELAY:
+                        _event_handler(core)
+                        start_time = time.time()
             elif c.PROP_TRIGGER == 'START':
-                if c.TRIGGER_OUT == 'ON':
-                    triggerOut.on()
-                if c.EYES == 'ON':
-                    eyesPin.on()
-                a.play_vocal_track() 
-
-    except Exception as e:
-        print(e)  
-    finally:
-        #pir.close()
-        eyesPin.close()
-        triggerOut.close()
-        a.jaw.close()
+                _eyes_on(core, True)
+                _trigger_out(core)
+                core.tracks.play_vocal()
+                _eyes_on(core, False)
+            else:  # PIR
+                log.warning("PIR trigger is not supported in this build; idling")
+                while not stop_event.is_set():
+                    time.sleep(1)
+    except SystemExit:
+        log.info("legacy control loop ended (vocal play count reached)")
+    except Exception:
+        log.exception("legacy control loop terminated")

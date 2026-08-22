@@ -1,0 +1,19 @@
+{
+  "lead_seconds": 3,
+  "skeletons": [
+    {
+      "name": "skeleton1",
+      "address": "http://192.168.1.50:8090",
+      "api_key": "REPLACE-WITH-API-KEY",
+      "api_key_id": "REPLACE-WITH-API-KEY-ID",
+      "service_name": "skeleton"
+    },
+    {
+      "name": "skeleton2",
+      "address": "http://192.168.1.51:8090",
+      "api_key": "REPLACE-WITH-API-KEY",
+      "api_key_id": "REPLACE-WITH-API-KEY-ID",
+      "service_name": "skeleton"
+    }
+  ]
+}

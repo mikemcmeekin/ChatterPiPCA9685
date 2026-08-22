@@ -1,45 +1,45 @@
-from adafruit_servokit import ServoKit
+from pca import get_pca
 
 class StandardServo:
-    def __init__(self, channel=0, min_angle=0, 
-                    max_angle=140, initial_angle=None, min_pulse_width=500, max_pulse_width=2500):
+    def __init__(self, channel=0, min_angle=0,
+                 max_angle=140, initial_angle=None, min_pulse_width=500, max_pulse_width=2500,
+                 pca=None):
         """
         Initializes a single servo on a specified channel.
 
         :param channel: The channel number where the servo is connected.
         :param min_pulse: Minimum pulse width in microseconds (default: 500).
         :param max_pulse: Maximum pulse width in microseconds (default: 2500).
+        :param pca: Shared PCA9685 instance (default: process-wide singleton).
         """
-        self.kit = ServoKit(channels=16)
-        self.servo = self.kit.servo[channel]
-        self.servo.set_pulse_width_range(min_pulse_width, max_pulse_width)
+        self.pca = pca if pca is not None else get_pca()
+        self.channel = self.pca.channels[channel]
         self.min_angle = min_angle
         self.max_angle = max_angle
-        self.initial_angle = initial_angle
+        self.min_pulse = min_pulse_width
+        self.max_pulse = max_pulse_width
+        self._period = 1000000.0 / self.pca.frequency
         self.set_angle(min_angle)
 
     def set_angle(self, angle):
         """
-        Set the angle of the servo.
-
-        :param angle: The angle to set the servo to (0 to 180 degrees).
+        Set the angle of the servo (0 to 180 degrees).
+        Maps the angle onto the configured min/max pulse widths, exactly
+        like the previous ServoKit-based implementation.
         """
-        if angle <= self.min_angle :
-            self.servo.angle = self.min_angle
-        elif angle >= self.max_angle :
-            self.servo.angle = self.max_angle
-        elif angle > self.min_angle and angle < self.max_angle :
-            self.servo.angle = angle
-        else:
-            raise ValueError("Angle must be between 0 and 180 degrees")
-            print("Angle value was " & angle)
+        if angle <= self.min_angle:
+            angle = self.min_angle
+        elif angle >= self.max_angle:
+            angle = self.max_angle
+        pulse = self.min_pulse + (angle / 180.0) * (self.max_pulse - self.min_pulse)
+        self.channel.duty_cycle = int(pulse / self._period * 65535)
         return angle
 
     def disable(self):
         """
-        Disable the servo (by setting its angle to None).
+        Disable the servo (no PWM output).
         """
-        self.servo.angle = None
+        self.channel.duty_cycle = 0
 
     def close(self):
-         self.servo.angle = None
+        self.channel.duty_cycle = 0

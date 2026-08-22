@@ -1,23 +1,17 @@
-from adafruit_servokit import ServoKit
-import board
-import busio
-from adafruit_pca9685 import PCA9685
+from pca import get_pca
 
 class LEDControl:
-    def __init__(self, channel, min_brightness=0, max_brightness=100):
+    def __init__(self, channel, min_brightness=0, max_brightness=100, pca=None):
         """
-        Initializes an LED controlled by the ServoKit.
+        Initializes an LED controlled by the shared PCA9685.
 
         :param channel: The channel number where the LED is connected.
-        :param min_brightness: The minimum brightness level (default: 0).
-        :param max_brightness: The maximum brightness level (default: 100).
+        :param min_brightness: Minimum brightness level (default: 0).
+        :param max_brightness: Maximum brightness level (default: 100).
+        :param pca: Shared PCA9685 instance (default: process-wide singleton).
         """
-        self.i2c = board.I2C() # uses board.SCL and board.SDA
-        self.pca = PCA9685(self.i2c)
-        self.pca.frequency = 60
-        self.led =  self.pca.channels[channel]
-        #self.kit = ServoKit(channels=16)
-        #self.led = self.kit.continuous_servo[channel]
+        self.pca = pca if pca is not None else get_pca()
+        self.led = self.pca.channels[channel]
         self.min_brightness = min_brightness
         self.max_brightness = max_brightness
         
