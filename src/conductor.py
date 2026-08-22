@@ -22,6 +22,7 @@ import logging
 import time
 
 from viam.robot.client import RobotClient
+from viam.resource.types import resource_name_from_string
 
 log = logging.getLogger("chatterpi.conductor")
 
@@ -40,7 +41,8 @@ async def connect(entry):
         options = RobotClient.Options()
     robot = await RobotClient.at_address(address, options)
     service_name = entry.get("service_name", "skeleton")
-    return robot, robot.get_service(service_name)
+    rn = resource_name_from_string(f"rdk:service:generic/{service_name}")
+    return robot, robot.get_service(rn)
 
 
 async def measure_offset(service):

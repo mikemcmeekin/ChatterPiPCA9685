@@ -1,19 +1,20 @@
 {
   "modules": {
     "skeleton-module": {
-      "source": "local",
-      "type": "python",
-      "api_version": "rpc",
-      "entrypoint": "/root/ChatterPi/src/skeletonModule.py"
+      "type": "local",
+      "executable_path": "/root/ChatterPi/src/run.sh",
+      "env": {
+        "CHATTERPI_CONFIG": "/root/ChatterPi/src/config.ini"
+      }
     }
   },
   "services": {
     "skeleton": {
+      "name": "skeleton",
       "namespace": "rdk",
       "type": "service",
       "subtype": "generic",
       "model": "mcmeekin:service:skeleton",
-      "name": "skeleton",
       "attributes": {}
     }
   }

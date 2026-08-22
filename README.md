@@ -47,6 +47,8 @@ If you use ChatterPi, I'd live to hear about it. Post a comment on my blog: http
 
 ChatterPi can now drive additional servos (head, arms, ...) declared per-skeleton in `config.ini`, and play timed **scripts** that combine audio with servo motion. The jaw stays audio-driven.
 
+Full setup, Viam module registration, conductor usage, script format and troubleshooting: **[ViamIntegration.md](ViamIntegration.md)**.
+
 ## Per-skeleton hardware
 Every piece of hardware is a `[PART <name>]` section in `src/config.ini` (type `servo`/`led`, channel, angle/pulse limits, rest position). Each skeleton carries its own config describing its equipment. Legacy configs without `[PART]` sections still work.
 
