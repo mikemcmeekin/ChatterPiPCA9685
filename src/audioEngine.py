@@ -155,7 +155,7 @@ class AudioEngine:
         return jawTarget
 
     def _play_blocking(self, path, drive=True):
-        data, sr, _subtype = sf.read(path, always_2d=True)
+        data, sr = sf.read(path, always_2d=True)
         channels = data.shape[1]
 
         current_frame = 0
