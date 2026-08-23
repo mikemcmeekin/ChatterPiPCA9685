@@ -108,17 +108,23 @@ class AudioEngine:
                 ev.set()
 
     def _get_target(self, data, channels):
+        """Map one audio block to a jaw target.
+
+        `data` is float32 in [-1, 1] (what sounddevice/soundfile hand
+        the callback). The config thresholds are on the legacy int16
+        scale (the original code measured PyAudio int16 samples), so
+        levels are scaled to that range before the style mapping.
+        """
         def get_avg(levels):
             if c.STYLE == 2:
                 levels = self.bp.filter_data(levels)
             levels = np.absolute(levels)
             if channels == 1:
-                return np.sum(levels) // len(levels)
-            right = levels[1::2]
-            return np.sum(right) // len(right)
+                return levels.mean()
+            # stereo: right channel only (legacy behaviour)
+            return levels[:, 1].mean()
 
-        levels = abs(np.frombuffer(data, dtype='<i2'))
-        volume = get_avg(levels)
+        volume = get_avg(data * 32767.0)
         jawStep = (self.j_max - self.j_min) / 3
         if c.STYLE == 0:
             jawTarget = self.j_max if volume > c.THRESHOLD else self.j_min
@@ -157,14 +163,14 @@ class AudioEngine:
     def _play_blocking(self, path, drive=True):
         data, sr = sf.read(path, always_2d=True)
         channels = data.shape[1]
+        if drive:
+            self.bp.reset()
 
         current_frame = 0
-        latest_time = time.monotonic()
-        lastJawTarget = 0
         status_flag = False
 
         def filesCallback(outdata, frames, times, status):
-            nonlocal latest_time, current_frame, lastJawTarget, status_flag
+            nonlocal current_frame, status_flag
             has_status = bool(status and str(status))
             if has_status != status_flag:
                 status_flag = has_status
@@ -174,17 +180,18 @@ class AudioEngine:
                     log.info("PortAudio status cleared")
             chunksize = min(len(data) - current_frame, frames)
             if drive:
-                # Only process jaw movements every 0.3s, to avoid buffer overruns
-                now = time.monotonic()
-                if now - latest_time > 0.3:
-                    latest_time = now
-                    jawTarget = self._get_target(data[current_frame:current_frame + chunksize], channels)
-                    angle = 180 - jawTarget
-                    if abs(angle - lastJawTarget) < 6:
-                        angle = int(angle * .8)
-                    self.rig.set(self.jaw, angle)
-                    lastJawTarget = angle
-                    self.rig.set(self.eyes, (jawTarget / 180) * 100)
+                # One jaw/eyes update per audio block (~11 ms at 44.1
+                # kHz). This does numpy math and queue pushes only -
+                # the actual I2C writes happen on the rig's worker
+                # thread, so there is no buffer-overrun risk.
+                jawTarget = self._get_target(
+                    data[current_frame:current_frame + chunksize], channels)
+                angle = 180 - jawTarget
+                # raw (unsmoothed) writes: retargeting a smoothed part
+                # every block would restart its ease each time and pile
+                # up ~smoothing_ms of lag behind the audio
+                self.rig.set_raw(self.jaw, angle)
+                self.rig.set_raw(self.eyes, (jawTarget / 180) * 100)
 
             outdata[:chunksize] = data[current_frame:current_frame + chunksize]
             if chunksize < frames:

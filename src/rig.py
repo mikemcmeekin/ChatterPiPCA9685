@@ -81,6 +81,12 @@ class SkeletonRig:
         if name in self.parts:
             self.worker.set(name, value)
 
+    def set_raw(self, name, value):
+        """Immediately drive part to value, bypassing its smoothing
+        profile (audio-driven updates). No-op if unknown/disabled."""
+        if name in self.parts:
+            self.worker.set_raw(name, value)
+
     def move(self, name, value, ms):
         """Drive part to value over ms milliseconds (no-op if unknown/disabled)."""
         if name in self.parts:

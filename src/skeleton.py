@@ -26,7 +26,8 @@ class SkeletonCore:
         c.update()
         self.rig = SkeletonRig()
         self.audio = AudioEngine(self.rig)
-        self.player = ScriptPlayer(self.rig, self.audio, c.SCRIPTS_DIR)
+        self.player = ScriptPlayer(self.rig, self.audio, c.SCRIPTS_DIR,
+                           on_done=self._release_mode)
         self.tracks = Tracks(self.audio)
         self._lock = threading.Lock()
         self._legacy_thread = None

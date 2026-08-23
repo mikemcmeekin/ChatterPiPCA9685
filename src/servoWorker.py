@@ -67,6 +67,16 @@ class ServoWorker:
         """Write value immediately (non-blocking)."""
         self.q.put(('set', name, value))
 
+    def set_raw(self, name, value):
+        """Write value immediately, bypassing the part's smoothing
+        profile and cancelling any in-flight move (non-blocking).
+
+        Used for continuous audio-driven updates: a normal set on a
+        smoothed part restarts the ease from the current value on
+        every retarget, so ~smoothing_ms of updates pile up as lag.
+        """
+        self.q.put(('set_raw', name, value))
+
     def move(self, name, value, ms):
         """Move to value over ms milliseconds (non-blocking). ms<=0 = immediate."""
         self.q.put(('move', name, value, ms))
@@ -117,12 +127,12 @@ class ServoWorker:
 
     def _apply(self, it):
         kind = it[0]
-        if kind == 'set':
+        if kind in ('set', 'set_raw'):
             _, name, value = it
             if name not in self._parts:
                 return
             profile = self._profile[name]
-            if profile.smoothing_ms > 0:
+            if kind == 'set' and profile.smoothing_ms > 0:
                 # smoothed part: ease to the value over the smoothing window
                 self._start_move(name, value, profile.smoothing_ms)
             else:

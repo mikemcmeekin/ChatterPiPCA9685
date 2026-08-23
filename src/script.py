@@ -74,10 +74,13 @@ class Script:
 
 
 class ScriptPlayer:
-    def __init__(self, rig, audio, directory):
+    def __init__(self, rig, audio, directory, on_done=None):
         self.rig = rig
         self.audio = audio
         self.directory = directory
+        self.on_done = on_done
+        """Optional callback fired when a script finishes (naturally or
+        via stop), letting the owner release any mode it held."""
         self._lock = threading.Lock()
         self._stop_event = threading.Event()
         self._thread = None
@@ -173,6 +176,11 @@ class ScriptPlayer:
             with self._lock:
                 self.state = 'idle'
                 self._current = None
+            if self.on_done is not None:
+                try:
+                    self.on_done()
+                except Exception:
+                    log.exception("script on_done callback failed")
 
     def _exec(self, step, audio_events):
         if 'audio' in step:
