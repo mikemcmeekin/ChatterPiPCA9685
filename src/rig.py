@@ -69,7 +69,8 @@ class SkeletonRig:
                 self.parts[name] = PartDevice('led', device,
                                               spec['min_brightness'], spec['max_brightness'],
                                               spec['rest'])
-            self.worker.add_part(name, self.parts[name], self.parts[name].rest)
+            self.worker.add_part(name, self.parts[name], self.parts[name].rest,
+                                 spec.get('smoothing_ms', 0))
             # servo constructors park at min_angle; queue the configured rest value
             self.worker.set(name, self.parts[name].rest)
         if c.JAW_PART not in self.parts:

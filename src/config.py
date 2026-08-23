@@ -120,10 +120,12 @@ def update():
 				spec['pulse_min'] = int(spec.get('pulse_min', SERVO_MIN))
 				spec['pulse_max'] = int(spec.get('pulse_max', SERVO_MAX))
 				spec['rest'] = float(spec.get('rest', spec['min_angle']))
+				spec['smoothing_ms'] = int(spec.get('smoothing_ms', 0))
 			elif spec['type'] == 'led':
 				spec['min_brightness'] = float(spec.get('min_brightness', 0))
 				spec['max_brightness'] = float(spec.get('max_brightness', 100))
 				spec['rest'] = float(spec.get('rest', spec['min_brightness']))
+				spec['smoothing_ms'] = int(spec.get('smoothing_ms', 0))
 			else:
 				raise ValueError(f"Unknown part type {spec['type']} for part {name}")
 			PARTS[name] = spec

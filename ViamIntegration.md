@@ -66,6 +66,7 @@ channel = 4
 | `min_angle` / `max_angle` | servo limits (degrees); may be flipped to reverse direction |
 | `pulse_min` / `pulse_max` | servo pulse-width range in µs (per your servo) |
 | `rest` | position returned to after a script finishes (and on `stop`) |
+| `smoothing_ms` | eased-motion window in ms (default `0` = off). A part with a value > 0 is a **smoothed servo**: every set and move eases in and out — slow start, fast middle, slow finish (smoothstep curve). Use a small value for the fast jaw (≤ 100 ms) and larger values for head/arms (300–800 ms). Applies to LED parts too (brightness fades). |
 | `enabled` | set `false` to skip a part declared but not wired (default `true`) |
 
 Other relevant settings (see the committed `config.ini` for a full example):
@@ -260,6 +261,7 @@ Notes:
 
 - Steps may appear in any order in the file; they execute sorted by `t`.
 - Part names must match `[PART <name>]` sections in that skeleton's config. Unknown parts log a warning and are skipped — the same script can therefore run on skeletons with different equipment (missing parts just no-op).
+- Smoothed parts (`smoothing_ms > 0`) ease in/out on `move` steps **and** on audio-driven jaw/eye updates, so even the jaw follows the audio envelope smoothly instead of stepping.
 - After the last step, all parts return to their configured `rest` positions.
 - The committed `src/scripts/greet.json` and `src/scripts/point.json` are working examples (`greet.json` is the one above).
 - JSON has no comments; keep the format strict so the loader validates it. (If you'd prefer an alternative — e.g. a YAML with comments, or a Python DSL for authored choreography — say so and we can add a converter; the on-wire format the player consumes is this JSON.)

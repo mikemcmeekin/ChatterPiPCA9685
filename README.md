@@ -69,6 +69,8 @@ JSON files in `src/scripts/`; `t` is seconds from the start of the script:
 
 `audio` plays a track (jaw follows the audio level); `move` eases the named parts to the given values over `ms`; `set` jumps immediately.
 
+Servo motion can be eased per part: `smoothing_ms = 100` in a `[PART]` section makes it a "smoothed" servo (slow start, fast middle, slow finish) on all moves and audio-driven updates.
+
 Run one locally (no Viam): `python src/main.py --script greet`
 
 ## Multi-skeleton via Viam
