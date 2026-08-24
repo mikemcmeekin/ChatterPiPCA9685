@@ -186,7 +186,7 @@ class AudioEngine:
                 # thread, so there is no buffer-overrun risk.
                 jawTarget = self._get_target(
                     data[current_frame:current_frame + chunksize], channels)
-                angle = 180 - jawTarget
+                angle = jawTarget
                 # raw (unsmoothed) writes: retargeting a smoothed part
                 # every block would restart its ease each time and pile
                 # up ~smoothing_ms of lag behind the audio
