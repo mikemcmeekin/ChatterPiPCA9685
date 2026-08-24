@@ -19,6 +19,9 @@ A script is a JSON file in the scripts directory:
 `audio`  - plays a track (jaw driven by the audio level automatically)
 `move`   - moves the named parts to the given values over `ms` milliseconds
 `set`    - sets the named parts immediately
+`neck`   - turns the two-servo neck: {"pose": "left"} (center/left/right/
+           up/down) or {"yaw": -1.0, "pitch": 0.5} plus optional "ms"
+           (ignored when the skeleton has no neck)
 
 All steps execute on a monotonic timeline anchored to a shared start time,
 so several skeletons can play the same script locked together.
@@ -45,8 +48,13 @@ class Script:
             t = float(step.get('t', 0))
             if t < 0:
                 raise ScriptError(f"step t must be >= 0, got {t}")
-            if not any(k in step for k in ('audio', 'move', 'set')):
+            if not any(k in step for k in ('audio', 'move', 'set', 'neck')):
                 raise ScriptError(f"step has no action at t={t}: {step}")
+            if 'neck' in step:
+                ns = step['neck']
+                if not isinstance(ns, dict) or not any(
+                        k in ns for k in ('pose', 'yaw', 'pitch')):
+                    raise ScriptError(f"neck step needs pose or yaw/pitch at t={t}: {step}")
             cleaned.append((t, step))
         cleaned.sort(key=lambda x: x[0])
         self.steps = cleaned
@@ -74,9 +82,10 @@ class Script:
 
 
 class ScriptPlayer:
-    def __init__(self, rig, audio, directory, on_done=None):
+    def __init__(self, rig, audio, directory, neck=None, on_done=None):
         self.rig = rig
         self.audio = audio
+        self.neck = neck
         self.directory = directory
         self.on_done = on_done
         """Optional callback fired when a script finishes (naturally or
@@ -193,3 +202,14 @@ class ScriptPlayer:
         if 'set' in step:
             for part, value in step['set'].items():
                 self.rig.set(part, value)
+        if 'neck' in step:
+            ns = step['neck']
+            if self.neck is None:
+                log.warning("neck step at t=%.2f skipped: no neck", step.get('t', -1))
+                return
+            ms = int(ns.get('ms', 400))
+            if 'pose' in ns:
+                self.neck.look_preset(ns['pose'], ms)
+            else:
+                self.neck.look(yaw=float(ns.get('yaw', 0.0)),
+                               pitch=float(ns.get('pitch', 0.0)), ms=ms)

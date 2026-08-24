@@ -66,6 +66,7 @@ def update():
 	global EYES_PART
 	global TRIGGER_OUT_PART
 	global PARTS
+	global NECK
 
 	# Fresh parser each update so removed/renamed sections don't survive
 	# a re-read (the control panel rewrites config.ini while running).
@@ -130,7 +131,20 @@ def update():
 				raise ValueError(f"Unknown part type {spec['type']} for part {name}")
 			PARTS[name] = spec
 
-	# Legacy fallback: synthesize parts from old [SERVO]/[PINS] sections
+	# Optional [NECK] section: the two-servo neck mapping (see neck.py).
+	# Absent section = no neck on this skeleton.
+	NECK = None
+	if cfg.has_section('NECK'):
+		NECK = {
+			'left_part': cfg.get('NECK', 'left_part', fallback='neck_l'),
+			'right_part': cfg.get('NECK', 'right_part', fallback='neck_r'),
+			'base': float(cfg.get('NECK', 'base', fallback='90')),
+			'yaw_delta': float(cfg.get('NECK', 'yaw_delta', fallback='40')),
+			'pitch_delta': float(cfg.get('NECK', 'pitch_delta', fallback='30')),
+			'yaw_sign_l': int(cfg.get('NECK', 'yaw_sign_l', fallback='1')),
+			'yaw_sign_r': int(cfg.get('NECK', 'yaw_sign_r', fallback='-1')),
+			'pitch_sign': int(cfg.get('NECK', 'pitch_sign', fallback='1')),
+		}
 	if 'jaw' not in PARTS:
 		PARTS['jaw'] = {'type': 'servo', 'channel': JAW_PIN,
 						'min_angle': float(MIN_ANGLE), 'max_angle': float(MAX_ANGLE),

@@ -7,17 +7,15 @@
     },
     {
       "t": 0.5,
-      "move": {
-        "arm_r": 90,
-        "head": 10,
-        "ms": 350
+      "neck": {
+        "pose": "right",
+        "ms": 400
       }
     },
     {
       "t": 3.5,
-      "move": {
-        "arm_r": 0,
-        "head": 0,
+      "neck": {
+        "pose": "center",
         "ms": 500
       }
     }

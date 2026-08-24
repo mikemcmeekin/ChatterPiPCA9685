@@ -13,6 +13,10 @@ Commands are sent with do_command:
     status        {"cmnd": "status"}
     get_time      {"cmnd": "get_time"}            # {"ok":true,"epoch":...}
     set_part      {"cmnd": "set_part", "part": "head", "value": 15, "ms": 300}
+    neck          {"cmnd": "neck", "yaw": -1.0, "pitch": 0.0, "ms": 400}
+                  # yaw -1 (left)..+1 (right), pitch -1 (down)..+1 (up);
+                  # or a named pose:
+                  {"cmnd": "neck", "pose": "left"}   # center/left/right/up/down
     rest          {"cmnd": "rest"}
 """
 import asyncio
@@ -66,6 +70,14 @@ class SkeletonService(Generic, EasyResource):
                 return {"ok": True, **core.get_time()}
             elif cmnd == "set_part":
                 core.set_part(command["part"], command["value"], ms=command.get("ms", 0))
+                return {"ok": True}
+            elif cmnd == "neck":
+                ms = command.get("ms", 400)
+                if "pose" in command:
+                    core.neck_preset(command["pose"], ms=ms)
+                else:
+                    core.neck(yaw=float(command.get("yaw", 0.0)),
+                              pitch=float(command.get("pitch", 0.0)), ms=ms)
                 return {"ok": True}
             elif cmnd == "rest":
                 core.rest_all()

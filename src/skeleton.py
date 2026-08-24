@@ -13,6 +13,7 @@ import time
 
 import config as c
 from rig import SkeletonRig
+from neck import Neck
 from audioEngine import AudioEngine
 from script import Script, ScriptPlayer, ScriptError
 from tracks import Tracks
@@ -25,14 +26,43 @@ class SkeletonCore:
     def __init__(self):
         c.update()
         self.rig = SkeletonRig()
+        self.neck = self._build_neck()
         self.audio = AudioEngine(self.rig)
         self.player = ScriptPlayer(self.rig, self.audio, c.SCRIPTS_DIR,
-                           on_done=self._release_mode)
+                                   neck=self.neck,
+                                   on_done=self._release_mode)
         self.tracks = Tracks(self.audio)
         self._lock = threading.Lock()
         self._legacy_thread = None
         self._legacy_stop = threading.Event()
         self.mode = 'idle'
+
+    # ---- neck ----
+
+    def _build_neck(self):
+        """Create the two-servo neck from the [NECK] config, if any."""
+        spec = c.NECK
+        if spec is None:
+            return None
+        missing = [p for p in (spec['left_part'], spec['right_part'])
+                   if p not in self.rig.parts]
+        if missing:
+            log.warning("neck configured but part(s) %s not in rig; neck disabled",
+                        missing)
+            return None
+        return Neck(self.rig, spec)
+
+    def neck(self, yaw=0.0, pitch=0.0, ms=400):
+        """Turn the head: yaw -1 (left)..+1 (right), pitch -1 (down)..+1 (up)."""
+        if self.neck is None:
+            raise RuntimeError("neck not configured")
+        self.neck.look(yaw, pitch, ms)
+
+    def neck_preset(self, pose, ms=400):
+        """Named neck pose: center / left / right / up / down."""
+        if self.neck is None:
+            raise RuntimeError("neck not configured")
+        self.neck.look_preset(pose, ms)
 
     # ---- legacy trigger/ambient mode ----
 
@@ -96,6 +126,7 @@ class SkeletonCore:
         return {'mode': mode,
                 'player': self.player.status(),
                 'audio_playing': self.audio.is_playing(),
+                'neck_ready': self.neck is not None,
                 'parts': sorted(self.rig.parts)}
 
     # ---- lifecycle ----
