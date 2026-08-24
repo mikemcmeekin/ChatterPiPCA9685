@@ -54,6 +54,14 @@ def _wait_ambient(core, finished, until, stop_event):
 
 def run_control_loop(core, stop_event):
     try:
+        if c.PROP_TRIGGER == 'MANUAL':
+            # No autonomous trigger/ambient loop. Playback happens only via an
+            # explicit Viam `play` (manual run), which plays the track once;
+            # the skeleton then idles until the next play command.
+            log.info("manual mode: no auto-trigger loop; playback via Viam play only")
+            while not stop_event.is_set():
+                time.sleep(1)
+            return
         if c.AMBIENT == 'ON':
             if c.PROP_TRIGGER == 'START':
                 # No ambient tracks play with this setting
